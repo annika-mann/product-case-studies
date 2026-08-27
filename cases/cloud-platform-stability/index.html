@@ -1,1 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cloud Platform Stability vs. Feature Delivery — Product Case Study</title>
+<style>
+:root{
+  --ink:#17202A;
+  --slate:#3E4A59;
+  --muted:#6D7784;
+  --line:#E5E8EC;
+  --bg:#F7F8FA;
+  --paper:#FFFFFF;
+  --blue:#2E5E9E;
+  --blue-soft:#EEF4FB;
+  --teal:#2F7B74;
+  --teal-soft:#EDF7F5;
+  --amber:#A86F24;
+  --amber-soft:#FFF6E9;
+  --red:#9A4B47;
+  --red-soft:#FBEFEE;
+  --shadow:0 14px 34px rgba(23,32,42,.07);
+  --radius:20px;
+  --sans:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5}
+button{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;padding:18px 14px;border-right:1px solid var(--line);background:linear-gradient(180deg,#fff,#fbfcfe);display:flex;flex-direction:column;gap:16px;overflow:auto}
+.identity{border:1px solid var(--line);border-radius:18px;background:#fff;padding:15px 14px;box-shadow:0 8px 20px rgba(23,32,42,.04);text-align:center}
+.identity strong{display:block;color:var(--blue);font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.identity span{display:block;color:var(--muted);font-size:11.5px;margin-top:4px;line-height:1.35}
+.nav{display:grid;gap:6px}
+.nav button{border:0;background:transparent;border-radius:13px;padding:10px 10px;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;color:var(--muted);font-size:12.8px;font-weight:800}
+.nav button:hover{background:rgba(46,94,158,.05);color:var(--ink)}
+.nav button.active{background:rgba(46,94,158,.09);color:var(--ink)}
+.nav-num{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:rgba(46,94,158,.10);color:var(--blue);font-family:var(--mono);font-size:10px;font-weight:900;flex:0 0 auto}
+.side-note{margin-top:auto;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:10.8px;line-height:1.45}
+.side-note b{display:block;color:var(--ink);font-size:11px;margin-bottom:3px}
+main{padding:26px 30px 72px;max-width:1360px;width:100%;margin:0 auto}
+.page{display:none;animation:fade .18s ease both}
+.page.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.hero,.panel,.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.hero{padding:24px 26px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-110px;top:-125px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(46,94,158,.14),rgba(47,123,116,.05) 58%,transparent 70%);pointer-events:none}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(46,94,158,.16);background:rgba(46,94,158,.06);border-radius:999px;padding:5px 9px;color:var(--blue);font-family:var(--mono);font-size:10px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;position:relative;z-index:1}
+h1{font-size:37px;line-height:1.07;letter-spacing:-.038em;margin:12px 0 8px;max-width:960px;position:relative;z-index:1}
+h2{font-size:24px;line-height:1.16;letter-spacing:-.024em;margin:0}
+h3{font-size:17px;line-height:1.25;margin:0}
+p{margin:0}.lead{font-size:16px;color:var(--slate);max-width:920px;position:relative;z-index:1}.kicker{margin-top:12px;color:var(--muted);font-size:12.5px;font-weight:750;position:relative;z-index:1}
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px;position:relative;z-index:1}.tag{padding:6px 9px;border-radius:999px;background:var(--blue-soft);color:#1f4f8e;border:1px solid rgba(46,94,158,.14);font-size:10.5px;font-weight:850}.tag.teal{background:var(--teal-soft);color:var(--teal);border-color:rgba(47,123,116,.17)}.tag.amber{background:var(--amber-soft);color:var(--amber);border-color:rgba(168,111,36,.17)}
+.section-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin:28px 0 14px}.section-head p{color:var(--muted);font-size:13px;max-width:700px}.grid{display:grid;gap:14px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{padding:18px 19px;box-shadow:0 8px 20px rgba(23,32,42,.035)}.card p{color:var(--slate);font-size:13.5px;margin-top:7px}.micro{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);font-weight:900}.micro.amber{color:var(--amber)}.micro.teal{color:var(--teal)}.micro.red{color:var(--red)}
+.system-map{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:10px;margin-top:18px}.sys-node{border:1px solid var(--line);background:#fff;border-radius:14px;padding:14px;text-align:center;min-height:88px;display:grid;align-content:center}.sys-node b{font-size:13px}.sys-node span{font-size:11px;color:var(--muted);margin-top:3px}.sys-node.focus{background:var(--amber-soft);border-color:rgba(168,111,36,.24)}.sys-arrow{font-family:var(--mono);color:#98A2AF;font-weight:900;text-align:center}
+.callout{margin-top:15px;border-left:4px solid var(--blue);background:var(--blue-soft);border-radius:0 14px 14px 0;padding:13px 15px;color:#234F86;font-size:14px;font-weight:850}.callout.red{border-left-color:var(--red);background:var(--red-soft);color:var(--red)}.callout.teal{border-left-color:var(--teal);background:var(--teal-soft);color:var(--teal)}
+.fact-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}.fact{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}.fact b{display:block;font-size:11.5px;color:var(--ink)}.fact span{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.4}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.legend span{font-size:10.5px;font-weight:800;border-radius:999px;padding:5px 8px;border:1px solid var(--line);background:#fff}.legend .known{color:var(--teal);background:var(--teal-soft);border-color:rgba(47,123,116,.18)}.legend .assume{color:var(--amber);background:var(--amber-soft);border-color:rgba(168,111,36,.18)}.legend .reflect{color:var(--blue);background:var(--blue-soft);border-color:rgba(46,94,158,.18)}
+.decision-hero{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.decision-main{padding:24px}.decision-main .no{font-size:32px;line-height:1.08;font-weight:900;letter-spacing:-.03em;color:var(--red)}.decision-main p{margin-top:10px;color:var(--slate);font-size:14.5px;max-width:720px}.decision-side{padding:22px;background:linear-gradient(160deg,var(--red-soft),#fff)}.decision-side b{display:block;color:var(--red);font-size:14px}.decision-side ul{margin:12px 0 0;padding-left:18px;color:var(--slate);font-size:12.5px}.decision-side li+li{margin-top:7px}
+.criteria{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-top:15px}.criterion{border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff}.criterion b{font-size:11.5px}.criterion span{display:block;margin-top:3px;color:var(--muted);font-size:10.5px;line-height:1.35}
+.timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;position:relative}.milestone{border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff;position:relative;overflow:hidden}.milestone:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)}.milestone.stabilize:before{background:var(--amber)}.milestone.extend:before{background:var(--teal)}.mile-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.mile-no{font-family:var(--mono);font-size:9.5px;font-weight:900;color:var(--muted)}.duration{font-family:var(--mono);font-size:10px;border-radius:999px;padding:5px 7px;background:#F3F5F7;color:var(--slate);font-weight:850}.milestone h3{font-size:19px;margin-top:9px}.milestone p{color:var(--slate);font-size:12.5px;margin-top:7px}.mile-list{display:grid;gap:6px;margin-top:13px}.mile-list span{display:block;border-radius:10px;padding:7px 9px;background:#F8F9FB;font-size:11.5px;color:var(--slate);font-weight:700}.milestone .gate{margin-top:14px;border-top:1px solid var(--line);padding-top:11px;color:var(--ink);font-size:11.5px;font-weight:850}
+.capacity-strip{display:grid;grid-template-columns:30% 70%;height:44px;border-radius:13px;overflow:hidden;border:1px solid var(--line);margin-top:14px}.capacity-free{display:grid;place-items:center;background:var(--teal-soft);color:var(--teal);font-size:11px;font-weight:900}.capacity-used{display:grid;place-items:center;background:#F3F5F7;color:var(--muted);font-size:11px;font-weight:850}
+.comm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.comm{border:1px solid var(--line);border-radius:17px;background:#fff;padding:18px}.comm .who{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:900}.comm h3{font-size:17px;margin-top:6px}.comm .message{margin-top:10px;padding:11px 12px;border-radius:12px;background:#F7F8FA;color:var(--slate);font-size:12.5px;font-weight:700;line-height:1.45}.comm.alpha .message{background:var(--red-soft);color:#7E403D}.comm.beta .message{background:var(--blue-soft);color:#2B5487}.comm.tech .message{background:var(--teal-soft);color:#2C6C66}
+.structure-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.structure-card{border:1px solid var(--line);border-radius:17px;background:#fff;padding:16px}.structure-card h3{font-size:15px}.structure-card p{margin-top:6px;color:var(--muted);font-size:12px}.structure-card .mini-list{display:grid;gap:6px;margin-top:11px}.structure-card .mini-list span{font-size:11px;color:var(--slate);background:#F8F9FB;border-radius:9px;padding:7px 8px}
+.slider-card{padding:22px}.slider-row{display:grid;grid-template-columns:180px 1fr 74px;gap:12px;align-items:center;margin-top:13px}.slider-row label{font-size:12px;font-weight:850;color:var(--slate)}input[type=range]{width:100%;accent-color:var(--blue)}.slider-value{font-family:var(--mono);font-size:11px;color:var(--blue);font-weight:900;text-align:right}.slider-note{margin-top:12px;color:var(--muted);font-size:11.5px}
+.reflection{display:grid;grid-template-columns:1fr 1fr;gap:14px}.reflect-card{padding:21px}.reflect-card.good{background:linear-gradient(160deg,var(--teal-soft),#fff)}.reflect-card.learn{background:linear-gradient(160deg,var(--blue-soft),#fff)}.reflect-card h3{font-size:20px}.reflect-card p{margin-top:9px;color:var(--slate);font-size:13.5px}.reflect-list{display:grid;gap:7px;margin-top:13px}.reflect-list span{display:block;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.72);border-radius:10px;padding:8px 10px;color:var(--slate);font-size:11.5px;font-weight:750}
+.case-loop{display:grid;grid-template-columns:repeat(9,auto);align-items:center;justify-content:center;gap:7px;margin-top:18px}.loop-node{min-width:98px;border:1px solid var(--line);border-radius:12px;padding:10px 9px;text-align:center;background:#fff;font-size:10.5px;font-weight:850;color:var(--slate)}.loop-node.focus{background:var(--blue-soft);color:#24518A;border-color:rgba(46,94,158,.20)}.loop-arrow{font-family:var(--mono);color:#98A2AF;font-weight:900}
+.disclaimer{margin-top:18px;border:1px dashed rgba(46,94,158,.24);border-radius:15px;padding:13px 15px;background:rgba(46,94,158,.035);color:var(--muted);font-size:11.5px}.disclaimer b{color:var(--blue)}
+.close{margin-top:18px;border-radius:20px;padding:26px;background:linear-gradient(135deg,#244A79,#2D706A);color:#fff;text-align:center}.close h2{color:#fff;font-size:28px}.close p{max-width:850px;margin:9px auto 0;color:rgba(255,255,255,.80);font-size:13px}.close .mainline{margin-top:17px;font-size:18px;font-weight:900}
 
+/* final visual polish */
+.side-bottom{margin-top:auto;padding-top:14px;border-top:1px solid var(--line)}
+.side-note{margin-top:0;border-top:0;padding-top:0;color:var(--muted);font-size:10.8px;line-height:1.45}
+.brand-signature{display:grid;grid-template-columns:50px minmax(0,1fr);align-items:center;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid rgba(46,94,158,.09)}
+.brand-logo{display:flex;align-items:center;justify-content:flex-start;color:var(--blue)}
+.brand-mark{width:48px;height:32px;display:block;overflow:visible;color:currentColor}
+.brand-mark path{fill:none;stroke:currentColor;stroke-width:24;stroke-linecap:round;stroke-linejoin:round}
+.brand-mark circle{fill:#fff;stroke:currentColor;stroke-width:24}
+.brand-mark text{fill:currentColor;font-family:Inter,Arial,sans-serif;font-weight:650;font-size:220px;letter-spacing:-8px}
+.brand-copy{min-width:0;line-height:1.35}
+.brand-copy b{display:block;color:var(--ink);font-size:10.4px;margin-bottom:2px}
+.brand-copy span{display:block;color:var(--muted);font-size:9.8px}
+.nav button:focus-visible,.mobile-tabs button:focus-visible,input[type=range]:focus-visible{outline:3px solid rgba(46,94,158,.22);outline-offset:3px}
+.hero,.card,.milestone,.comm,.structure-card{scroll-margin-top:20px}
+.page > .hero + *{margin-top:36px}
+.reasoning-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:6px}.flow-stage{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fff;box-shadow:0 8px 20px rgba(23,32,42,.035)}.flow-stage.start{background:linear-gradient(160deg,var(--blue-soft),#fff)}.flow-stage.middle{background:linear-gradient(160deg,var(--amber-soft),#fff)}.flow-stage.end{background:linear-gradient(160deg,var(--teal-soft),#fff)}.flow-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}.flow-head b{font-size:15px;letter-spacing:-.01em}.flow-head span{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:900}.flow-steps{display:grid;gap:8px}.flow-step{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;border:1px solid rgba(255,255,255,.75);background:rgba(255,255,255,.74);border-radius:12px;padding:8px 9px}.step-no{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:#fff;border:1px solid var(--line);font-family:var(--mono);font-size:10px;font-weight:900;color:var(--ink)}.flow-step b{font-size:12px;line-height:1.2}.flow-step span{display:block;color:var(--muted);font-size:10.5px;line-height:1.35;margin-top:2px}.flow-note{margin-top:12px;border-top:1px solid rgba(23,32,42,.08);padding-top:10px;color:var(--slate);font-size:11.5px;font-weight:700}
+@media(max-width:1100px){.brand-signature{display:none}}
+
+.mobile-tabs{display:none}
+@media(max-width:1100px){.app{grid-template-columns:1fr}.sidebar{display:none}.mobile-tabs{display:flex;position:sticky;top:0;z-index:30;background:rgba(247,248,250,.96);backdrop-filter:blur(10px);padding:9px;gap:6px;border-bottom:1px solid var(--line);overflow:auto}.mobile-tabs button{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 10px;font-size:11px;font-weight:800}.mobile-tabs button.active{background:var(--blue);border-color:var(--blue);color:#fff}main{padding:18px 12px 48px}.grid.two,.grid.three,.grid.four,.decision-hero,.timeline,.comm-grid,.structure-grid,.reflection,.reasoning-flow{grid-template-columns:1fr}.fact-grid,.criteria{grid-template-columns:1fr 1fr}.system-map{grid-template-columns:1fr}.sys-arrow{transform:rotate(90deg)}.case-loop{grid-template-columns:1fr;justify-content:stretch}.loop-arrow{transform:rotate(90deg);text-align:center;height:14px}.slider-row{grid-template-columns:1fr}.slider-value{text-align:left}.page > .hero + *{margin-top:28px}}
+@media(max-width:560px){h1{font-size:31px}.hero{padding:21px 18px}.fact-grid,.criteria{grid-template-columns:1fr}.capacity-strip{grid-template-columns:30% 70%}}
+</style>
+</head>
+<body>
+<div class="mobile-tabs">
+  <button class="active" data-page="p1">01 Context</button>
+  <button data-page="p2">02 Decision</button>
+  <button data-page="p3">03 Plan</button>
+  <button data-page="p4">04 System</button>
+  <button data-page="p5">05 Reflection</button>
+</div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="identity">
+      <strong>Product Case Study</strong>
+      <span>An anonymised cloud platform decision case.</span>
+    </div>
+    <div class="nav">
+      <button class="active" data-page="p1"><span class="nav-num">01</span><span>Current state</span></button>
+      <button data-page="p2"><span class="nav-num">02</span><span>My decision</span></button>
+      <button data-page="p3"><span class="nav-num">03</span><span>Three milestones</span></button>
+      <button data-page="p4"><span class="nav-num">04</span><span>Make it structural</span></button>
+      <button data-page="p5"><span class="nav-num">05</span><span>What I learned</span></button>
+    </div>
+    <div class="side-bottom">
+      <div class="side-note">
+        <b>How to read this case</b>
+        Facts from the original case, my in-interview reasoning, and later reflection are kept deliberately separate.
+      </div>
+      <div class="brand-signature" aria-label="Annika Mann brand signature">
+        <div class="brand-logo">
+          <svg aria-hidden="true" class="brand-mark" preserveAspectRatio="xMidYMid meet" viewBox="1110 745 890 560" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1198 837 V1198 Q1198 1227 1227 1227 H1882 Q1909 1227 1909 1200 V825 Q1909 800 1884 800 H1292"></path>
+            <path d="M1198 800 H1240"></path>
+            <path d="M1198 1117 C1300 1188 1430 1208 1530 1204 C1645 1198 1712 1084 1810 1022 C1840 1004 1872 990 1909 982"></path>
+            <circle cx="1198" cy="800" r="42"></circle>
+            <circle cx="1909" cy="982" r="42"></circle>
+            <circle cx="1530" cy="1194" r="42"></circle>
+            <text text-anchor="middle" x="1536" y="1060">AM</text>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <b>Professional. Clear. Consistent. Human.</b>
+          <span>Learn. Build. Share. Reflect. Repeat.</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <section class="page active" id="p1">
+      <div class="hero">
+        <span class="eyebrow">Cloud Platform · Reliability · Product Decision</span>
+        <h1>When “not yet” is the product decision.</h1>
+        <p class="lead">A cloud platform service was already live, but not yet reliable enough to become the dependency for another customer-facing feature. The challenge was to balance customer commitments, production stability and long-term platform health.</p>
+        <div class="tags">
+          <span class="tag">Cloud Platform</span>
+          <span class="tag">Platform Service</span>
+          <span class="tag amber">Production Stability</span>
+          <span class="tag teal">Stakeholder Alignment</span>
+          <span class="tag">Technical Debt</span>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <div><span class="micro">01 · Current state</span><h2>The service worked — but the platform could not yet explain its own failures.</h2></div>
+        <p>The important distinction was between “running in production” and “production-ready enough to safely extend”.</p>
+      </div>
+
+      <div class="card">
+        <div class="system-map">
+          <div class="sys-node"><b>Customer Project A</b><span>Wants a new feature this quarter</span></div>
+          <div class="sys-arrow">→</div>
+          <div class="sys-node focus"><b>Cloud Platform Service</b><span>Live, but not yet reliably observable</span></div>
+          <div class="sys-arrow">→</div>
+          <div class="sys-node"><b>Downstream systems</b><span>Failures may only surface later</span></div>
+        </div>
+        <div class="callout red">A second customer project had already experienced instability. The new service was suspected, but the team could not reliably isolate the root cause.</div>
+      </div>
+
+      <div class="fact-grid">
+        <div class="fact"><b>Already in production</b><span>The service had been live for several months.</span></div>
+        <div class="fact"><b>Incomplete observability</b><span>Monitoring and alerting were not yet sufficient.</span></div>
+        <div class="fact"><b>Unknown failure behaviour</b><span>Relevant error scenarios had not been fully tested.</span></div>
+        <div class="fact"><b>30% free sprint capacity</b><span>Enough capacity to act, but not enough to do everything at once.</span></div>
+      </div>
+
+      <div class="section-head">
+        <div><span class="micro amber">Pressure from both sides</span><h2>Two legitimate customer needs, one shared dependency.</h2></div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <span class="micro red">Customer Project A</span>
+          <h3>“Commit the new feature this quarter.”</h3>
+          <p>The customer had already been told about the capability and expected delivery. The project manager wanted a planning commitment.</p>
+        </div>
+        <div class="card">
+          <span class="micro teal">Customer Project B</span>
+          <h3>“When is the platform stable?”</h3>
+          <p>A recent incident had created uncertainty about the platform. The project manager wanted clarity on stability and concrete next steps.</p>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span class="known">Known from the case</span>
+        <span class="assume">My planning assumption</span>
+        <span class="reflect">Later reflection</span>
+      </div>
+
+      <div class="disclaimer"><b>Anonymisation note.</b> Company, client and internal product names have been removed. Relative timeframes, sprint capacity and decision-relevant sequencing are retained; calendar months and identifying dates are intentionally omitted.</div>
+    </section>
+
+    <section class="page" id="p2">
+      <div class="hero">
+        <span class="eyebrow">02 · My decision</span>
+        <h1>Do not build the feature on an unstable dependency — yet.</h1>
+        <p class="lead">The customer value of the new feature remained valid. The decision was about sequence: first create enough evidence and reliability to make extending the platform a responsible choice.</p>
+      </div>
+
+      <div class="decision-hero">
+        <div class="card decision-main">
+          <span class="micro red">Decision</span>
+          <div class="no">No — not now.</div>
+          <p>I would not commit the new customer-facing feature onto the service in its current state. The immediate priority is to investigate and stabilise the platform capability, then reopen the feature decision with a more reliable technical and planning basis.</p>
+          <div class="callout">The decision is not “stability instead of customer value”. It is “stability before adding another dependency and a larger blast radius”.</div>
+        </div>
+        <div class="card decision-side">
+          <b>Why this decision?</b>
+          <ul>
+            <li>There was already a real customer signal of instability.</li>
+            <li>The team could not yet isolate failures reliably.</li>
+            <li>Monitoring and alerting were incomplete.</li>
+            <li>Error behaviour was not sufficiently tested.</li>
+            <li>Adding a feature would increase complexity before the baseline was understood.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <div><span class="micro">Decision criteria</span><h2>I would make the trade-off explicit.</h2></div>
+        <p>The platform decision needs to balance customer value with reliability, operational risk and the cost of making the problem harder to diagnose later.</p>
+      </div>
+      <div class="criteria">
+        <div class="criterion"><b>Customer value</b><span>Is the feature still strategically valuable?</span></div>
+        <div class="criterion"><b>Reliability</b><span>Can the platform support another dependency safely?</span></div>
+        <div class="criterion"><b>Observability</b><span>Can failures be detected and isolated?</span></div>
+        <div class="criterion"><b>Blast radius</b><span>What becomes harder if we extend now?</span></div>
+        <div class="criterion"><b>Planability</b><span>Can we give a credible delivery commitment?</span></div>
+      </div>
+
+      <div class="section-head">
+        <div><span class="micro teal">Capacity</span><h2>Use the available capacity to reduce uncertainty first.</h2></div>
+      </div>
+      <div class="card">
+        <div class="capacity-strip"><div class="capacity-free">30% free</div><div class="capacity-used">70% already planned</div></div>
+        <p style="margin-top:12px;color:var(--slate);font-size:13px">The 30% free capacity is not automatically “feature capacity”. It is a decision budget. I would use it first to understand the failure modes, close the biggest observability gaps and create a realistic stabilisation estimate.</p>
+      </div>
+    </section>
+
+    <section class="page" id="p3">
+      <div class="hero">
+        <span class="eyebrow">03 · Three milestones</span>
+        <h1>Investigate → Stabilise → Extend.</h1>
+        <p class="lead">The decision becomes easier to communicate when the work is framed as three explicit milestones with a clear gate between them.</p>
+      </div>
+
+      <div class="timeline">
+        <div class="milestone">
+          <div class="mile-top"><span class="mile-no">01</span><span class="duration">~1 sprint</span></div>
+          <h3>Investigate</h3>
+          <p>Build enough understanding to know what we are stabilising and how large the problem really is.</p>
+          <div class="mile-list">
+            <span>Review the recent incident and known failure patterns</span>
+            <span>Identify monitoring and alerting gaps</span>
+            <span>Map downstream dependencies</span>
+            <span>Assess missing failure-mode tests</span>
+            <span>Estimate stabilisation scope with the Technical Lead</span>
+          </div>
+          <div class="gate">Gate: Can we explain the current risks and define what “stable enough” means?</div>
+        </div>
+        <div class="milestone stabilize">
+          <div class="mile-top"><span class="mile-no">02</span><span class="duration">~2 sprints</span></div>
+          <h3>Stabilise</h3>
+          <p>Close the critical reliability gaps before introducing another customer dependency.</p>
+          <div class="mile-list">
+            <span>Fix critical defects and root causes</span>
+            <span>Complete relevant monitoring and alerting</span>
+            <span>Test important failure scenarios</span>
+            <span>Improve operational visibility and recovery paths</span>
+            <span>Define a readiness check before extension</span>
+          </div>
+          <div class="gate">Gate: Is the service observable, testable and reliable enough to extend?</div>
+        </div>
+        <div class="milestone extend">
+          <div class="mile-top"><span class="mile-no">03</span><span class="duration">~2 sprints + release buffer</span></div>
+          <h3>Extend</h3>
+          <p>Reopen the feature decision once the dependency has a stronger operational baseline.</p>
+          <div class="mile-list">
+            <span>Reconfirm customer scope and value</span>
+            <span>Plan the feature on a more credible baseline</span>
+            <span>Implement with explicit dependency tests</span>
+            <span>Validate before production release</span>
+            <span>Monitor post-release behaviour</span>
+          </div>
+          <div class="gate">Outcome: Feature delivery with a lower platform and customer risk.</div>
+        </div>
+      </div>
+
+      <div class="disclaimer"><b>Timeframe note.</b> Sprint durations shown here are the planning assumptions I used in the interview discussion, not facts provided by the case. The point was to create a transparent sequence and a credible re-planning moment, not to claim certainty before investigation.</div>
+
+      <div class="section-head">
+        <div><span class="micro">Communication</span><h2>One decision, three different conversations.</h2></div>
+      </div>
+      <div class="comm-grid">
+        <div class="comm alpha">
+          <span class="who">Project Manager A</span>
+          <h3>“Not now — and here is the next decision point.”</h3>
+          <div class="message">The feature remains valuable, but I would not commit it onto the current dependency. We first stabilise the service, then re-plan the feature from a more reliable baseline.</div>
+        </div>
+        <div class="comm beta">
+          <span class="who">Project Manager B</span>
+          <h3>“Your incident changes the priority.”</h3>
+          <div class="message">The recent instability is evidence that the platform needs focused reliability work. We prioritise investigation and stabilisation and communicate progress against explicit readiness criteria.</div>
+        </div>
+        <div class="comm tech">
+          <span class="who">Technical Lead / Architect</span>
+          <h3>“Turn technical concern into testable readiness.”</h3>
+          <div class="message">I take the technical warning seriously, but translate it together with Engineering into observable risks, concrete work and a shared definition of when the service is safe to extend.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="p4">
+      <div class="hero">
+        <span class="eyebrow">04 · Make it structural</span>
+        <h1>Fix the conditions that allowed the situation to emerge.</h1>
+        <p class="lead">The case was not only about an incident or a single feature. The structural question was why a platform service could reach production without enough observability, failure testing and readiness clarity.</p>
+      </div>
+
+      <div class="structure-grid">
+        <div class="structure-card"><span class="micro">Release readiness</span><h3>Define “production-ready”</h3><p>Make operational readiness part of delivery rather than follow-up work.</p><div class="mini-list"><span>Monitoring & alerting</span><span>Failure-mode testing</span><span>Rollback / recovery path</span><span>Ownership and handover</span></div></div>
+        <div class="structure-card"><span class="micro amber">Reliability governance</span><h3>Protect platform health</h3><p>Do not let bugs and technical debt compete invisibly with customer features every sprint.</p><div class="mini-list"><span>Clear bug severity</span><span>Technical-debt review</span><span>Explicit maintenance capacity</span><span>Escalation for critical reliability work</span></div></div>
+        <div class="structure-card"><span class="micro teal">Platform health</span><h3>Measure what matters operationally</h3><p>Make service quality visible enough to support prioritisation and customer commitments.</p><div class="mini-list"><span>Availability / error rate</span><span>Incident frequency</span><span>Detection & recovery time</span><span>Recurring failure patterns</span></div></div>
+      </div>
+
+      <div class="section-head">
+        <div><span class="micro">Capacity policy</span><h2>My proposal: keep a visible reliability budget.</h2></div>
+        <p>This is a governance proposal from my interview reasoning, not a universal rule.</p>
+      </div>
+      <div class="card slider-card">
+        <div class="slider-row"><label for="debtRange">Illustrative sprint capacity for bugs & technical debt</label><input id="debtRange" type="range" min="10" max="30" value="20" step="5"><div class="slider-value"><span id="debtValue">20</span>%</div></div>
+        <div class="slider-note">I proposed roughly 15–20% as a default working range, then adjusting based on platform health and active incidents. The important principle is visibility: reliability work should be planned, not survive only when “free capacity” happens to exist.</div>
+      </div>
+
+      <div class="section-head">
+        <div><span class="micro teal">Operating model</span><h2>From platform → service → feature.</h2></div>
+      </div>
+      <div class="card">
+        <div class="case-loop">
+          <div class="loop-node">Platform health</div><div class="loop-arrow">→</div>
+          <div class="loop-node focus">Service readiness</div><div class="loop-arrow">→</div>
+          <div class="loop-node">Feature dependency</div><div class="loop-arrow">→</div>
+          <div class="loop-node">Customer delivery</div><div class="loop-arrow">→</div>
+          <div class="loop-node">Learn & monitor</div>
+        </div>
+        <div class="callout teal">A feature should not make an already unclear platform state harder to understand. The platform capability needs enough operational maturity before more customer value is layered on top.</div>
+      </div>
+    </section>
+
+    <section class="page" id="p5">
+      <div class="hero">
+        <span class="eyebrow">05 · Reflection</span>
+        <h1>The reasoning was stronger than the way I presented it.</h1>
+        <p class="lead">The interview feedback was not that the underlying decision logic was wrong. It was that I should have made the current state, the “not now” decision and the sequence of actions much easier to follow.</p>
+      </div>
+
+      <div class="reflection">
+        <div class="card reflect-card good">
+          <span class="micro teal">What I did well</span>
+          <h3>I looked beyond the feature request.</h3>
+          <p>I connected customer impact, platform reliability, technical uncertainty and long-term operating conditions instead of treating the requests as two competing backlog items.</p>
+          <div class="reflect-list"><span>Used the real customer incident as evidence</span><span>Protected the platform from a larger blast radius</span><span>Kept the feature valuable, but changed the sequence</span><span>Proposed structural improvements, not only a one-off fix</span></div>
+        </div>
+        <div class="card reflect-card learn">
+          <span class="micro">What I changed afterwards</span>
+          <h3>Make the decision visible earlier.</h3>
+          <p>I had explored the relevant risks, but the structure could have been sharper. Today I would state the current state and the decision first, then show the milestones and reasoning behind it.</p>
+          <div class="reflect-list"><span>Start with the known current state</span><span>Separate facts, assumptions and open questions</span><span>Say “no — not yet” explicitly</span><span>Show a small number of clear milestones</span><span>End with the next decision point and success criteria</span></div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <div><span class="micro">How I structure cases now</span><h2>A clearer reasoning flow.</h2></div>
+      </div>
+      <div class="card">
+        <div class="reasoning-flow">
+          <div class="flow-stage start">
+            <div class="flow-head"><span>Stage 1</span><b>Understand</b></div>
+            <div class="flow-steps">
+              <div class="flow-step"><div class="step-no">01</div><div><b>Context</b><span>What is happening and why now?</span></div></div>
+              <div class="flow-step"><div class="step-no">02</div><div><b>User / Goal</b><span>Who is affected and what outcome matters most?</span></div></div>
+              <div class="flow-step"><div class="step-no">03</div><div><b>Evidence</b><span>What do we know already and what signals support it?</span></div></div>
+            </div>
+          </div>
+          <div class="flow-stage middle">
+            <div class="flow-head"><span>Stage 2</span><b>Evaluate</b></div>
+            <div class="flow-steps">
+              <div class="flow-step"><div class="step-no">04</div><div><b>Constraints</b><span>Which technical, legal or delivery limits are real?</span></div></div>
+              <div class="flow-step"><div class="step-no">05</div><div><b>Options</b><span>Which realistic paths forward exist?</span></div></div>
+              <div class="flow-step"><div class="step-no">06</div><div><b>Trade-offs</b><span>What does each option buy and what does it cost?</span></div></div>
+            </div>
+          </div>
+          <div class="flow-stage end">
+            <div class="flow-head"><span>Stage 3</span><b>Decide & act</b></div>
+            <div class="flow-steps">
+              <div class="flow-step"><div class="step-no">07</div><div><b>Decision</b><span>Choose the path and make the call explicit.</span></div></div>
+              <div class="flow-step"><div class="step-no">08</div><div><b>Next step</b><span>Translate the decision into the immediate action plan.</span></div></div>
+              <div class="flow-step"><div class="step-no">09</div><div><b>Success</b><span>Define what will tell us the decision worked.</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="flow-note">The missing piece in my original presentation was not the reasoning itself. It was the reading direction: first understand the current state, then evaluate options, then make the decision and the next step explicit.</div>
+      </div>
+
+      <div class="close">
+        <h2>Good platform decisions are often sequencing decisions.</h2>
+        <p>Customer value, delivery pressure and technical health do not have to be treated as opposing camps. The PO’s job is to make the dependency visible, choose the right order and create a credible path back to value.</p>
+        <div class="mainline">Investigate. Stabilise. Extend.</div>
+      </div>
+
+      <div class="disclaimer"><b>Portfolio note.</b> This is an anonymised interview case. The scenario and identifying details have been adapted. The decision logic, milestone approach, structural proposals and reflection are based on my own interview reasoning and subsequent feedback.</div>
+    </section>
+  </main>
+</div>
+<script>
+const navButtons=[...document.querySelectorAll('[data-page]')];
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));
+  navButtons.forEach(b=>b.classList.toggle('active',b.dataset.page===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+navButtons.forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+const debtRange=document.getElementById('debtRange');
+const debtValue=document.getElementById('debtValue');
+if(debtRange&&debtValue){debtRange.addEventListener('input',()=>debtValue.textContent=debtRange.value)}
+</script>
+</body>
+</html>
