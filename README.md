@@ -18,7 +18,7 @@ The case includes:
 - lifecycle communication ideas
 - clickable prototypes for Saved Search Management and Seller Ratings & Transparency
 
-[Open the case on GitHub Pages](https://annika-mann.github.io/product-case-studies/cases/marketplace-bidding-experience/)
+[Open the case](https://annika-mann.github.io/product-case-studies/cases/marketplace-bidding-experience/)
 
 ### FinTech Portfolio Reporting
 
@@ -33,7 +33,7 @@ The case includes:
 - product evolution through usage signals and a Now / Next / Future framing
 - bilingual DE / EN presentation
 
-[Open the case on GitHub Pages](https://annika-mann.github.io/product-case-studies/cases/fintech-portfolio-reporting/)
+[Open the case](https://annika-mann.github.io/product-case-studies/cases/fintech-portfolio-reporting/)
 
 ### Cloud Platform Stability
 
@@ -48,7 +48,7 @@ The case includes:
 - readiness criteria, reliability-budget thinking and platform-health considerations
 - reflections on making dependency and sequencing decisions visible earlier
 
-[Open the case on GitHub Pages](https://annika-mann.github.io/product-case-studies/cases/cloud-platform-stability/)
+[Open the case](https://annika-mann.github.io/product-case-studies/cases/cloud-platform-stability/)
 
 ## About this repository
 
